@@ -9,6 +9,10 @@ package staffcrew;
  * @author meamo
  */
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigDecimal;
 import javax.swing.*;
 import java.sql.*;
@@ -25,6 +29,10 @@ public class mainUI extends javax.swing.JFrame {
     private String password = "admin";
     private int tableNumber = 1; // Set your default table number
     
+    
+    String receiptText1;
+    String receiptText2;
+    String receiptText3;
     
     public mainUI() {
         initComponents();
@@ -44,9 +52,9 @@ public class mainUI extends javax.swing.JFrame {
 
     private void updateReceipt() {
         // Fetch orders for the specified table number
-        String receiptText1 = fetchOrdersForTable1(1);
-        String receiptText2 = fetchOrdersForTable2(2);
-        String receiptText3 = fetchOrdersForTable3(3);
+        receiptText1 = fetchOrdersForTable1(1);
+        receiptText2 = fetchOrdersForTable2(2);
+        receiptText3 = fetchOrdersForTable3(3);
 
         // Update the JTextArea with the receipt
         SwingUtilities.invokeLater(() -> {
@@ -57,129 +65,205 @@ public class mainUI extends javax.swing.JFrame {
     }
 
     private String fetchOrdersForTable1(int tableNumber) {
-        StringBuilder receiptText = new StringBuilder();
-        BigDecimal totalOrderPrice = BigDecimal.ZERO;
+    StringBuilder receiptText = new StringBuilder();
+    BigDecimal totalOrderPrice = BigDecimal.ZERO;
 
-        try {
-            Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
-            String sql = "SELECT orders.order_date, menus.item_name, orderitems.quantity, menus.price " +
-                         "FROM orders " +
-                         "JOIN orderitems ON orders.order_id = orderitems.order_id " +
-                         "JOIN menus ON orderitems.menu_id = menus.menu_id " +
-                         "WHERE orders.table_number = ?";
+    try {
+        Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+        String sql = "SELECT orders.order_date, menus.item_name, orderitems.quantity, menus.price " +
+                     "FROM orders " +
+                     "JOIN orderitems ON orders.order_id = orderitems.order_id " +
+                     "JOIN menus ON orderitems.menu_id = menus.menu_id " +
+                     "WHERE orders.table_number = ?";
 
-            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-                preparedStatement.setInt(1, tableNumber);
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, tableNumber);
 
-                ResultSet resultSet = preparedStatement.executeQuery();
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-                // Check if there are no orders for the specified table
-                if (!resultSet.isBeforeFirst()) {
-                    return "Table No Orders";
-                }
-
-                while (resultSet.next()) {
-                    Timestamp orderDate = resultSet.getTimestamp("order_date");
-                    String itemName = resultSet.getString("item_name");
-                    int quantity = resultSet.getInt("quantity");
-                    BigDecimal price = resultSet.getBigDecimal("price");
-
-                    totalOrderPrice = totalOrderPrice.add(price.multiply(BigDecimal.valueOf(quantity)));
-
-                    receiptText.append(itemName)
-                               .append(" x").append(quantity).append(" - ").append(price).append("php \n");
-                }
+            // Check if there are no orders for the specified table
+            if (!resultSet.isBeforeFirst()) {
+                printBtn.setEnabled(false);
+                return "Table No Orders";
+            } else {
+                printBtn.setEnabled(true);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
-        receiptText.append("\nTotal Order Price: PHP ").append(totalOrderPrice);
-        return receiptText.toString();
+            while (resultSet.next()) {
+                Timestamp orderDate = resultSet.getTimestamp("order_date");
+                String itemName = resultSet.getString("item_name");
+                int quantity = resultSet.getInt("quantity");
+                BigDecimal price = resultSet.getBigDecimal("price");
+
+                BigDecimal totalPriceForItem = price.multiply(BigDecimal.valueOf(quantity));
+                totalOrderPrice = totalOrderPrice.add(totalPriceForItem);
+
+                receiptText.append(itemName)
+                           .append(" x").append(quantity)
+                           .append(" - Total: ").append(totalPriceForItem).append("php \n");
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    receiptText.append("\nTotal Order Price: PHP ").append(totalOrderPrice);
+    return receiptText.toString();
+}
+
+    
+    private static void saveReceiptToFile(String receiptText) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Choose file location to save receipt");
+
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave.getAbsolutePath() + ".txt"))) {
+                writer.write(receiptText);
+                System.out.println("Receipt saved to: " + fileToSave.getAbsolutePath() + ".txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Receipt not saved. User canceled the operation.");
+        }
+    }
+    
+    private static void saveReceiptToFile2(String receiptText) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Choose file location to save receipt");
+
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave.getAbsolutePath() + ".txt"))) {
+                writer.write(receiptText);
+                System.out.println("Receipt saved to: " + fileToSave.getAbsolutePath() + ".txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Receipt not saved. User canceled the operation.");
+        }
+    }
+    
+    private static void saveReceiptToFile3(String receiptText) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Choose file location to save receipt");
+
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave.getAbsolutePath() + ".txt"))) {
+                writer.write(receiptText);
+                System.out.println("Receipt saved to: " + fileToSave.getAbsolutePath() + ".txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Receipt not saved. User canceled the operation.");
+        }
     }
     
     private String fetchOrdersForTable2(int tableNumber) {
         StringBuilder receiptText = new StringBuilder();
-        BigDecimal totalOrderPrice = BigDecimal.ZERO;
+    BigDecimal totalOrderPrice = BigDecimal.ZERO;
 
-        try {
-            Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
-            String sql = "SELECT orders.order_date, menus.item_name, orderitems.quantity, menus.price " +
-                         "FROM orders " +
-                         "JOIN orderitems ON orders.order_id = orderitems.order_id " +
-                         "JOIN menus ON orderitems.menu_id = menus.menu_id " +
-                         "WHERE orders.table_number = ?";
+    try {
+        Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+        String sql = "SELECT orders.order_date, menus.item_name, orderitems.quantity, menus.price " +
+                     "FROM orders " +
+                     "JOIN orderitems ON orders.order_id = orderitems.order_id " +
+                     "JOIN menus ON orderitems.menu_id = menus.menu_id " +
+                     "WHERE orders.table_number = ?";
 
-            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-                preparedStatement.setInt(1, tableNumber);
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, tableNumber);
 
-                ResultSet resultSet = preparedStatement.executeQuery();
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-                // Check if there are no orders for the specified table
-                if (!resultSet.isBeforeFirst()) {
-                    return "Table No Orders";
-                }
-
-                while (resultSet.next()) {
-                    Timestamp orderDate = resultSet.getTimestamp("order_date");
-                    String itemName = resultSet.getString("item_name");
-                    int quantity = resultSet.getInt("quantity");
-                    BigDecimal price = resultSet.getBigDecimal("price");
-
-                    totalOrderPrice = totalOrderPrice.add(price.multiply(BigDecimal.valueOf(quantity)));
-
-                    receiptText.append(itemName)
-                               .append(" x").append(quantity).append(" - ").append(price).append("php \n");
-                }
+            // Check if there are no orders for the specified table
+            if (!resultSet.isBeforeFirst()) {
+                printBtn.setEnabled(false);
+                return "Table No Orders";
+            } else {
+                printBtn.setEnabled(true);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
-        receiptText.append("\nTotal Order Price: PHP ").append(totalOrderPrice);
-        return receiptText.toString();
+            while (resultSet.next()) {
+                Timestamp orderDate = resultSet.getTimestamp("order_date");
+                String itemName = resultSet.getString("item_name");
+                int quantity = resultSet.getInt("quantity");
+                BigDecimal price = resultSet.getBigDecimal("price");
+
+                BigDecimal totalPriceForItem = price.multiply(BigDecimal.valueOf(quantity));
+                totalOrderPrice = totalOrderPrice.add(totalPriceForItem);
+
+                receiptText.append(itemName)
+                           .append(" x").append(quantity)
+                           .append(" - Total: ").append(totalPriceForItem).append("php \n");
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    receiptText.append("\nTotal Order Price: PHP ").append(totalOrderPrice);
+    return receiptText.toString();
     }
     
     private String fetchOrdersForTable3(int tableNumber) {
         StringBuilder receiptText = new StringBuilder();
-        BigDecimal totalOrderPrice = BigDecimal.ZERO;
+    BigDecimal totalOrderPrice = BigDecimal.ZERO;
 
-        try {
-            Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
-            String sql = "SELECT orders.order_date, menus.item_name, orderitems.quantity, menus.price " +
-                         "FROM orders " +
-                         "JOIN orderitems ON orders.order_id = orderitems.order_id " +
-                         "JOIN menus ON orderitems.menu_id = menus.menu_id " +
-                         "WHERE orders.table_number = ?";
+    try {
+        Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+        String sql = "SELECT orders.order_date, menus.item_name, orderitems.quantity, menus.price " +
+                     "FROM orders " +
+                     "JOIN orderitems ON orders.order_id = orderitems.order_id " +
+                     "JOIN menus ON orderitems.menu_id = menus.menu_id " +
+                     "WHERE orders.table_number = ?";
 
-            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-                preparedStatement.setInt(1, tableNumber);
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, tableNumber);
 
-                ResultSet resultSet = preparedStatement.executeQuery();
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-                // Check if there are no orders for the specified table
-                if (!resultSet.isBeforeFirst()) {
-                    return "Table No Orders";
-                }
-
-                while (resultSet.next()) {
-                    Timestamp orderDate = resultSet.getTimestamp("order_date");
-                    String itemName = resultSet.getString("item_name");
-                    int quantity = resultSet.getInt("quantity");
-                    BigDecimal price = resultSet.getBigDecimal("price");
-
-                    totalOrderPrice = totalOrderPrice.add(price.multiply(BigDecimal.valueOf(quantity)));
-
-                    receiptText.append(itemName)
-                               .append(" x").append(quantity).append(" - ").append(price).append("php \n");
-                }
+            // Check if there are no orders for the specified table
+            if (!resultSet.isBeforeFirst()) {
+                printBtn.setEnabled(false);
+                return "Table No Orders";
+            } else {
+                printBtn.setEnabled(true);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
-        receiptText.append("\nTotal Order Price: PHP ").append(totalOrderPrice);
-        return receiptText.toString();
+            while (resultSet.next()) {
+                Timestamp orderDate = resultSet.getTimestamp("order_date");
+                String itemName = resultSet.getString("item_name");
+                int quantity = resultSet.getInt("quantity");
+                BigDecimal price = resultSet.getBigDecimal("price");
+
+                BigDecimal totalPriceForItem = price.multiply(BigDecimal.valueOf(quantity));
+                totalOrderPrice = totalOrderPrice.add(totalPriceForItem);
+
+                receiptText.append(itemName)
+                           .append(" x").append(quantity)
+                           .append(" - Total: ").append(totalPriceForItem).append("php \n");
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    receiptText.append("\nTotal Order Price: PHP ").append(totalOrderPrice);
+    return receiptText.toString();
     }
 
    
@@ -265,6 +349,11 @@ public class mainUI extends javax.swing.JFrame {
         jScrollPane3.setViewportView(jTextArea2);
 
         printBtn.setText("PRINT RECEIPT");
+        printBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                printBtnActionPerformed(evt);
+            }
+        });
 
         clearBtn.setText("CLEAR");
         clearBtn.addActionListener(new java.awt.event.ActionListener() {
@@ -282,6 +371,11 @@ public class mainUI extends javax.swing.JFrame {
         });
 
         printBtn2.setText("PRINT RECEIPT");
+        printBtn2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                printBtn2ActionPerformed(evt);
+            }
+        });
 
         clearBtn3.setText("CLEAR");
         clearBtn3.addActionListener(new java.awt.event.ActionListener() {
@@ -291,6 +385,11 @@ public class mainUI extends javax.swing.JFrame {
         });
 
         printBtn3.setText("PRINT RECEIPT");
+        printBtn3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                printBtn3ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -394,6 +493,24 @@ public class mainUI extends javax.swing.JFrame {
         // TODO add your handling code here:
         clearDataForTableNumber3(3);
     }//GEN-LAST:event_clearBtn3ActionPerformed
+
+    private void printBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_printBtnActionPerformed
+        // TODO add your handling code here:
+        
+        saveReceiptToFile(receiptText1);
+    }//GEN-LAST:event_printBtnActionPerformed
+
+    private void printBtn2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_printBtn2ActionPerformed
+        // TODO add your handling code here:
+        
+        saveReceiptToFile2(receiptText2);
+    }//GEN-LAST:event_printBtn2ActionPerformed
+
+    private void printBtn3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_printBtn3ActionPerformed
+        // TODO add your handling code here:
+        
+        saveReceiptToFile3(receiptText3);
+    }//GEN-LAST:event_printBtn3ActionPerformed
 
     private void clearDataForTableNumber1(int tableNumber) {
         try {
